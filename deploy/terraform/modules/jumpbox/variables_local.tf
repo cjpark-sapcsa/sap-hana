@@ -64,7 +64,8 @@ locals {
       },
       "components" = [
         "ansible"
-      ]
+      ],
+      "private_ip_address" = ""
     }
   ]
 
