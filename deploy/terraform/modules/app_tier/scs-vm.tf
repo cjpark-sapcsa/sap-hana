@@ -122,7 +122,7 @@ resource "azurerm_linux_virtual_machine" "vm-scs" {
   network_interface_ids = [
     azurerm_network_interface.nics-scs[count.index].id
   ]
-  size                            = "Standard_D4a_v4"
+  size                            = "Standard_D8s_v3"
   admin_username                  = "scsadmin"
   admin_password                  = "password"
   disable_password_authentication = true
