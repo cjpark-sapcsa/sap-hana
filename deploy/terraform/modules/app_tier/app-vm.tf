@@ -44,7 +44,7 @@ resource "azurerm_linux_virtual_machine" "vm-app" {
   network_interface_ids = [
     azurerm_network_interface.nics-app[count.index].id
   ]
-  size                            = "Standard_E16s_v3"
+  size                            = "Standard_D8s_v3"
   admin_username                  = "appadmin"
   admin_password                  = "password"
   disable_password_authentication = true
