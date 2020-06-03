@@ -115,7 +115,7 @@ resource "azurerm_availability_set" "scs-as" {
 resource "azurerm_linux_virtual_machine" "vm-scs" {
   count               = 2
   name                = "scs${count.index}-${local.sid}-vm"
-  computer_name       = "scs${count.index}-${local.sid}-vm"
+  computer_name       = "${lower(local.sid)}scs${format("%02d", count.index)}"
   location            = var.resource-group[0].location
   resource_group_name = var.resource-group[0].name
   availability_set_id = azurerm_availability_set.scs-as[0].id

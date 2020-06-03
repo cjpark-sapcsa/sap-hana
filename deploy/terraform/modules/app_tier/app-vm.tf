@@ -37,7 +37,7 @@ resource "azurerm_availability_set" "app-as" {
 resource "azurerm_linux_virtual_machine" "vm-app" {
   count               = 2
   name                = "app${count.index}-${local.sid}-vm"
-  computer_name       = "app${count.index}-${local.sid}-vm"
+  computer_name       = "${lower(local.sid)}app${format("%02d", count.index)}"
   location            = var.resource-group[0].location
   resource_group_name = var.resource-group[0].name
   availability_set_id = azurerm_availability_set.app-as[0].id
