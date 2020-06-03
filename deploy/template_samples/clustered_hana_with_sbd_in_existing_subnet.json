@@ -3,7 +3,7 @@
     "region": "eastus",
     "resource_group": {
       "is_existing": "false",
-      "name": "test-rg"
+      "name": "nancyc-reuse-03"
     },
     "vnets": {
       "management": {
@@ -36,6 +36,14 @@
             "is_existing": "true",
             "arm_id": "/subscriptions/xxx/resourceGroups/existing-rg/providers/Microsoft.Network/networkSecurityGroups/nsg-db"
           }
+        },
+        "subnet_iscsi": {
+          "is_existing": "true",
+          "arm_id": "/subscriptions/xxx/resourceGroups/existing-rg/providers/Microsoft.Network/virtualNetworks/vnet-sap/subnets/subnet-iscsi",
+          "nsg": {
+            "is_existing": "true",
+            "armd_id": "/subscriptions/xxx/resourceGroups/existing-rg/providers/Microsoft.Network/networkSecurityGroups/nsg-iscsi"
+          }
         }
       }
     },
@@ -52,7 +60,7 @@
         "username": "azureadm"
       },
       "//": "A list of IP is required if subnet_db uses existing subnet",
-      "iscsi_nic_ips": ["10.1.2.50","10.1.2.51","10.1.2.52"]
+      "iscsi_nic_ips": ["10.1.4.10","10.1.4.11","10.1.4.12"]
     }
   },
   "jumpboxes": {
@@ -77,7 +85,7 @@
         "components": [
           "ansible"
         ],
-        "private_ip_address": "10.0.1.30"
+        "private_ip_address": "10.0.1.31"
       }
     ]
   },
@@ -132,12 +140,12 @@
           "name": "hdb1",
           "role": "worker",
           "//": "Lists of IPs are required if subnet_admin and subnet_db uses existing subnet",
-          "admin_nic_ips": ["10.1.1.30","10.1.1.31"],
-          "db_nic_ips": ["10.1.2.30","10.1.2.31"]
+          "admin_nic_ips": ["10.1.1.70","10.1.1.71"],
+          "db_nic_ips": ["10.1.2.70","10.1.2.71"]
         }
       ],
       "loadbalancer": {
-        "frontend_ip": "10.1.2.20"
+        "frontend_ip": "10.1.2.80"
       }
     }
   ],
@@ -151,8 +159,8 @@
     },
     "downloader": {
       "credentials": {
-        "sap_user": "",
-        "sap_password": ""
+        "sap_user": "ss",
+        "sap_password": "ss"
       },
       "scenarios": [
         {
