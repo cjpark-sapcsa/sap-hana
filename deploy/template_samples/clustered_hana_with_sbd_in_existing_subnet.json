@@ -3,7 +3,7 @@
     "region": "eastus",
     "resource_group": {
       "is_existing": "false",
-      "name": "nancyc-reuse-03"
+      "name": "test-rg"
     },
     "vnets": {
       "management": {
@@ -85,7 +85,7 @@
         "components": [
           "ansible"
         ],
-        "private_ip_address": "10.0.1.31"
+        "private_ip_address": "10.0.1.30"
       }
     ]
   },
@@ -140,12 +140,12 @@
           "name": "hdb1",
           "role": "worker",
           "//": "Lists of IPs are required if subnet_admin and subnet_db uses existing subnet",
-          "admin_nic_ips": ["10.1.1.70","10.1.1.71"],
-          "db_nic_ips": ["10.1.2.70","10.1.2.71"]
+          "admin_nic_ips": ["10.1.1.30","10.1.1.31"],
+          "db_nic_ips": ["10.1.2.30","10.1.2.31"]
         }
       ],
       "loadbalancer": {
-        "frontend_ip": "10.1.2.80"
+        "frontend_ip": "10.1.2.20"
       }
     }
   ],
@@ -159,8 +159,8 @@
     },
     "downloader": {
       "credentials": {
-        "sap_user": "ss",
-        "sap_password": "ss"
+        "sap_user": "",
+        "sap_password": ""
       },
       "scenarios": [
         {
