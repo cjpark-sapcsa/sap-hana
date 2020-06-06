@@ -3,43 +3,8 @@ parameters:
   osImage: ''
 
 jobs:
-- job: createAllNew_SN_${{parameters.osVersion}}
-  timeoutInMinutes: 180
-  variables:
-    scenario: sap-allNew-SN
-    testcase: $(scenario)-${{parameters.osVersion}}-$(Build.BuildId)
-  steps:
-  - template: test-case-template-update.yaml
-    parameters:
-      scenario: $(scenario)
-      testCaseName: $(testcase)
-      placeHolder: var-rg-name
-      value: $(testcase)
-  - template: terraform-deployment-steps.yaml
-    parameters:
-      testCaseName: $(testcase)
-      osImage: ${{parameters.osImage}}
-- job: createAllNew_HA_${{parameters.osVersion}}
-  timeoutInMinutes: 180
-  variables:
-    scenario: sap-allNew-HA
-    testcase: $(scenario)-${{parameters.osVersion}}-$(Build.BuildId)
-  steps:
-  - template: test-case-template-update.yaml
-    parameters:
-      scenario: $(scenario)
-      testCaseName: $(testcase)
-      placeHolder: var-rg-name
-      value: $(testcase)
-  - template: terraform-deployment-steps.yaml
-    parameters:
-      testCaseName: $(testcase)
-      osImage: ${{parameters.osImage}}
-  - template: ansible-deployment-steps.yaml
-    parameters:
-      testCaseName: $(testcase)
 - job: reuseRG_SN_${{parameters.osVersion}}
-  timeoutInMinutes: 180
+  timeoutInMinutes: 60
   variables:
     scenario: sap-reuseRG-SN
     testcase: $(scenario)-${{parameters.osVersion}}-$(Build.BuildId)
@@ -64,19 +29,21 @@ jobs:
     parameters:
       testCaseName: $(testcase)
       osImage: ${{parameters.osImage}}
-  - template: ansible-deployment-steps.yaml
-    parameters:
-      testCaseName: $(testcase)
 - job: reuseVnet_SN_${{parameters.osVersion}}
-  dependsOn: createAllNew_SN_${{parameters.osVersion}}
-  timeoutInMinutes: 180
+  timeoutInMinutes: 60
   variables:
     scenario: sap-reuseVNET-SN
     testcase: $(scenario)-${{parameters.osVersion}}-$(Build.BuildId)
+    reusableResourceGroup: Prepare-$(testcase)
   steps:
   - script: |
       az login --service-principal --user $(hana-pipeline-spn-id) --password  $(hana-pipeline-spn-pw) --tenant $(landscape-tenant) --output none
-      echo '##vso[task.setvariable variable=arm_id]$(az network vnet show --resource-group sap-allNew-SN-${{parameters.osVersion}}-$(Build.BuildId) --name vnet-mgmt --query id --output tsv)'
+      az group create --location eastus -n $(reusableResourceGroup)
+      echo '##vso[task.setvariable variable=arm_id]$(az group show --name $(reusableResourceGroup) --query id --output tsv)'
+      az network vnet create --name vnet-mgmt --resource-group $(reusableResourceGroup) --address-prefix 10.0.0.0/16
+      echo '##vso[task.setvariable variable=vnet_mgmt_arm_id]$(az network vnet show --resource-group $(reusableResourceGroup) --name vnet-mgmt --query id --output tsv)'
+      az network vnet create --name vnet-sap --resource-group $(reusableResourceGroup) --address-prefix 10.2.0.0/16
+      echo '##vso[task.setvariable variable=vnet_sap_arm_id]$(az network vnet show --resource-group $(reusableResourceGroup) --name vnet-sap --query id --output tsv)'
   - template: test-case-template-update.yaml
     parameters:
       scenario: $(scenario)
@@ -87,22 +54,34 @@ jobs:
     parameters:
       scenario: $(scenario)
       testCaseName: $(testcase)
-      placeHolder: vnet-arm-id
-      value: $(arm_id)
+      placeHolder: vnet-mgmt-arm-id
+      value: $(vnet_mgmt_arm_id)
+  - template: test-case-template-update.yaml
+    parameters:
+      scenario: $(scenario)
+      testCaseName: $(testcase)
+      placeHolder: vnet-sap-arm-id
+      value: $(vnet_sap_arm_id)
   - template: terraform-deployment-steps.yaml
     parameters:
       testCaseName: $(testcase)
       osImage: ${{parameters.osImage}}
 - job: reuseNSG_SN_${{parameters.osVersion}}
-  timeoutInMinutes: 180
-  dependsOn: createAllNew_SN_${{parameters.osVersion}}
+  timeoutInMinutes: 60
   variables:
     scenario: sap-reuseNSG-SN
     testcase: $(scenario)-${{parameters.osVersion}}-$(Build.BuildId)
+    reusableResourceGroup: Prepare-$(testcase)
   steps:
   - script: |
       az login --service-principal --user $(hana-pipeline-spn-id) --password  $(hana-pipeline-spn-pw) --tenant $(landscape-tenant) --output none
-      echo '##vso[task.setvariable variable=arm_id]$(az network nsg show --resource-group sap-allNew-SN-${{parameters.osVersion}}-$(Build.BuildId) --name nsg-mgmt --query id --output tsv)' 
+      az group create --location eastus -n $(reusableResourceGroup)
+      echo '##vso[task.setvariable variable=arm_id]$(az group show --name $(reusableResourceGroup) --query id --output tsv)'
+      az network nsg create --name nsg-mgmt --resource-group $(reusableResourceGroup)
+      echo '##vso[task.setvariable variable=nsg_mgmt_arm_id]$(az network nsg show --resource-group $(reusableResourceGroup) --name nsg-mgmt --query id --output tsv)'
+      az network nsg rule create --name nsg-mgmt-rule --nsg-name nsg-mgmt --resource-group $(reusableResourceGroup) --source-address-prefixes 0.0.0.0/0 --protocol Tcp --priority 102 
+      az network nsg create --name nsg-admin --resource-group $(reusableResourceGroup)
+      echo '##vso[task.setvariable variable=nsg_admin_arm_id]$(az network nsg show --resource-group $(reusableResourceGroup) --name nsg-admin --query id --output tsv)' 
   - template: test-case-template-update.yaml
     parameters:
       scenario: $(scenario)
@@ -113,8 +92,14 @@ jobs:
     parameters:
       scenario: $(scenario)
       testCaseName: $(testcase)
-      placeHolder: nsg-arm-id
-      value: $(arm_id)
+      placeHolder: nsg-mgmt-arm-id
+      value: $(nsg_mgmt_arm_id)
+  - template: test-case-template-update.yaml
+    parameters:
+      scenario: $(scenario)
+      testCaseName: $(testcase)
+      placeHolder: nsg-admin-arm-id
+      value: $(nsg_admin_arm_id)
   - template: terraform-deployment-steps.yaml
     parameters:
       testCaseName: $(testcase)

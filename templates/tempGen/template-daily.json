@@ -10,7 +10,7 @@
       "name": "test-ppg"
     },
     "vnets": {
-      "management": {
+      "management": { 
         "is_existing": "false",
         "name": "vnet-mgmt",
         "address_space": "10.0.0.0/16",

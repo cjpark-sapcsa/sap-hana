@@ -57,6 +57,12 @@ stages:
       osImage: '\"offer\": \"RHEL-SAP-HA\", 
                 \"publisher\": \"RedHat\", 
                 \"sku\": \"7.6\"'
+  - template: templates/job-template-per-os.yaml
+    parameters:
+      osVersion: "SLES12"
+      osImage: '\"offer\": \"sles-sap-12-sp5\", 
+                \"publisher\": \"SUSE\", 
+                \"sku\": \"gen1\"'
 #####################################################################
 # This stage destroy resources created from all above test cases.   #
 # It will be triggered after stage CreatingResources is finished.   #
@@ -83,6 +89,9 @@ stages:
             sap-reuseRG-SN
             sap-reuseVNET-SN
             sap-reuseNSG-SN
+            Prepare-sap-reuseVNET-SN
+            Prepare-sap-reuseNSG-SN
+            Prepare-sap-reuseRG-SN
           )
           for scenario in "${scenario_list[@]}"
           do

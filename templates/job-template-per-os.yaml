@@ -19,9 +19,6 @@ jobs:
     parameters:
       testCaseName: $(testcase)
       osImage: ${{parameters.osImage}}
-  - template: ansible-deployment-steps.yaml
-    parameters:
-      testCaseName: $(testcase)
 - job: createAllNew_HA_${{parameters.osVersion}}
   timeoutInMinutes: 180
   variables:
