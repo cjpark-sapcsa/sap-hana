@@ -41,10 +41,7 @@ module "hdb_node" {
   ssh-timeout      = var.ssh-timeout
   sshkey           = var.sshkey
   resource-group   = module.common_infrastructure.resource-group
-  subnet-sap-admin = module.common_infrastructure.subnet-sap-admin
-  nsg-admin        = module.common_infrastructure.nsg-admin
-  subnet-sap-db    = module.common_infrastructure.subnet-sap-db
-  nsg-db           = module.common_infrastructure.nsg-db
+  vnet-sap         = module.common_infrastructure.vnet-sap
   storage-bootdiag = module.common_infrastructure.storage-bootdiag
 }
 
@@ -59,8 +56,7 @@ module "app_tier" {
   ssh-timeout      = var.ssh-timeout
   sshkey           = var.sshkey
   resource-group   = module.common_infrastructure.resource-group
-  subnet-app       = module.common_infrastructure.subnet-sap-app
-  nsg-app          = module.common_infrastructure.nsg-app
+  vnet-sap         = module.common_infrastructure.vnet-sap
   storage-bootdiag = module.common_infrastructure.storage-bootdiag
 }
 
