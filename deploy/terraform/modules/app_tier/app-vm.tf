@@ -22,18 +22,20 @@ resource "azurerm_availability_set" "app-as" {
   resource_group_name          = var.resource-group[0].name
   platform_update_domain_count = 20
   platform_fault_domain_count  = 2
+  proximity_placement_group_id = lookup(var.infrastructure, "ppg", false) != false ? (var.ppg[0].id) : null
   managed                      = true
 }
 
 # Create the Application VM(s)
 resource "azurerm_linux_virtual_machine" "vm-app" {
-  count               = local.enable_deployment ? var.application.application_server_count : 0
-  name                = "app${count.index}-${var.application.sid}-vm"
-  computer_name       = "${lower(var.application.sid)}app${format("%02d", count.index)}"
-  location            = var.resource-group[0].location
-  resource_group_name = var.resource-group[0].name
-  availability_set_id = azurerm_availability_set.app-as[0].id
-  network_interface_ids = [
+  count                        = local.enable_deployment ? var.application.application_server_count : 0
+  name                         = "app${count.index}-${var.application.sid}-vm"
+  computer_name                = "${lower(var.application.sid)}app${format("%02d", count.index)}"
+  location                     = var.resource-group[0].location
+  resource_group_name          = var.resource-group[0].name
+  availability_set_id          = azurerm_availability_set.app-as[0].id
+  proximity_placement_group_id = lookup(var.infrastructure, "ppg", false) != false ? (var.ppg[0].id) : null
+  network_interface_ids        = [
     azurerm_network_interface.nics-app[count.index].id
   ]
   size                            = "Standard_D8s_v3"

@@ -96,18 +96,20 @@ resource "azurerm_availability_set" "scs-as" {
   resource_group_name          = var.resource-group[0].name
   platform_update_domain_count = 20
   platform_fault_domain_count  = 2
+  proximity_placement_group_id = lookup(var.infrastructure, "ppg", false) != false ? (var.ppg[0].id) : null
   managed                      = true
 }
 
 # Create the SCS VM(s)
 resource "azurerm_linux_virtual_machine" "vm-scs" {
-  count               = local.enable_deployment ? (var.application.scs_high_availability ? 2 : 1) : 0
-  name                = "scs${count.index}-${var.application.sid}-vm"
-  computer_name       = "${lower(var.application.sid)}scs${format("%02d", count.index)}"
-  location            = var.resource-group[0].location
-  resource_group_name = var.resource-group[0].name
-  availability_set_id = azurerm_availability_set.scs-as[0].id
-  network_interface_ids = [
+  count                        = local.enable_deployment ? (var.application.scs_high_availability ? 2 : 1) : 0
+  name                         = "scs${count.index}-${var.application.sid}-vm"
+  computer_name                = "${lower(var.application.sid)}scs${format("%02d", count.index)}"
+  location                     = var.resource-group[0].location
+  resource_group_name          = var.resource-group[0].name
+  availability_set_id          = azurerm_availability_set.scs-as[0].id
+  proximity_placement_group_id = lookup(var.infrastructure, "ppg", false) != false ? (var.ppg[0].id) : null
+  network_interface_ids        = [
     azurerm_network_interface.nics-scs[count.index].id
   ]
   size                            = "Standard_D8s_v3"
