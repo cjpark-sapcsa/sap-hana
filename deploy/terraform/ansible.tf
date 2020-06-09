@@ -17,7 +17,7 @@ resource "null_resource" "prepare-rti-files" {
     user        = module.jumpbox.rti-info.authentication.username
     private_key = module.jumpbox.rti-info.authentication.type == "key" ? file(var.sshkey.path_to_private_key) : null
     password    = lookup(module.jumpbox.rti-info.authentication, "password", null)
-    timeout     = var.ssh-timeout
+    timeout     = 120
   }
 
   # Copies output.json and inventory file for ansbile on RTI.

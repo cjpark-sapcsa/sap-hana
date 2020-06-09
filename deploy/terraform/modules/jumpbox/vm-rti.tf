@@ -92,7 +92,7 @@ resource "azurerm_linux_virtual_machine" "rti" {
     user        = local.rti[count.index].authentication.username
     private_key = local.rti[count.index].authentication.type == "key" ? file(var.sshkey.path_to_private_key) : null
     password    = lookup(local.rti[count.index].authentication, "password", null)
-    timeout     = var.ssh-timeout
+    timeout     = 120
   }
 
   # Copies ssh keypair over to jumpboxes and sets permission
@@ -127,7 +127,7 @@ resource "null_resource" "prepare-rti" {
     user        = local.rti[0].authentication.username
     private_key = local.rti[0].authentication.type == "key" ? file(var.sshkey.path_to_private_key) : null
     password    = lookup(local.rti[0].authentication, "password", null)
-    timeout     = var.ssh-timeout
+    timeout     = 120
   }
 
   # Installs Git, Ansible and clones repository on RTI
