@@ -62,6 +62,7 @@ module "app_tier" {
   resource-group   = module.common_infrastructure.resource-group
   vnet-sap         = module.common_infrastructure.vnet-sap
   storage-bootdiag = module.common_infrastructure.storage-bootdiag
+  ppg              = module.common_infrastructure.ppg
 }
 
 # Generate output files
