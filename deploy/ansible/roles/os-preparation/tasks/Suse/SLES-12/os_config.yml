@@ -10,6 +10,8 @@
     name: "{{ item }}"
     state: present
   with_items: "{{ packages[ansible_os_family] }}"
+  register: os_package_status
+  failed_when: os_package_status.rc != 0
 
 - name: SAP Note 2593824 - Linux Running SAP applications compiled with GCC 7.x
   package:
