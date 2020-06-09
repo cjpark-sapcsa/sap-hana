@@ -10,6 +10,10 @@ variable "storage-bootdiag" {
   description = "Details of the boot diagnostic storage device"
 }
 
+variable "ppg" {
+  description = "Details of the proximity placement group"
+}
+
 locals {
   enable_deployment = lookup(var.application, "enable_deployment", false)
 
