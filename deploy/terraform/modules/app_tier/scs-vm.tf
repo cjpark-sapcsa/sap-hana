@@ -1,92 +1,80 @@
 # Create SCS NICs
 resource "azurerm_network_interface" "nics-scs" {
-  count                         = 2
-  name                          = "scs-${local.sid}-nic-${count.index}"
+  count                         = local.enable_deployment ? (var.application.scs_high_availability ? 2 : 1) : 0
+  name                          = "scs${count.index}-${var.application.sid}-nic"
   location                      = var.resource-group[0].location
   resource_group_name           = var.resource-group[0].name
   enable_accelerated_networking = true
 
   ip_configuration {
-    name                          = "scs-${local.sid}-nic-${count.index}-ip"
+    name                          = "scs${count.index}-${var.application.sid}-nic-ip"
     subnet_id                     = var.infrastructure.vnets.sap.subnet_app.is_existing ? data.azurerm_subnet.subnet-sap-app[0].id : azurerm_subnet.subnet-sap-app[0].id
     private_ip_address            = "10.1.3.1${count.index}"
     private_ip_address_allocation = "static"
   }
 }
 
-# Associate SCS NICs with the Network Security Group
-resource "azurerm_network_interface_security_group_association" "nic-scs-nsg" {
-  count                     = 2
-  network_interface_id      = azurerm_network_interface.nics-scs[count.index].id
-  network_security_group_id = var.infrastructure.vnets.sap.subnet_app.nsg.is_existing ? data.azurerm_network_security_group.nsg-app[0].id : azurerm_network_security_group.nsg-app[0].id
-}
-
 # Create the SCS Load Balancer
 resource "azurerm_lb" "scs-lb" {
-  count               = 1
-  name                = "scs-${local.sid}-lb"
+  count               = local.enable_deployment ? 1 : 0
+  name                = "scs-${var.application.sid}-lb"
   resource_group_name = var.resource-group[0].name
   location            = var.resource-group[0].location
 
-  frontend_ip_configuration {
-    name                          = "scs-${local.sid}-lb-feip"
-    subnet_id                     = var.infrastructure.vnets.sap.subnet_app.is_existing ? data.azurerm_subnet.subnet-sap-app[0].id : azurerm_subnet.subnet-sap-app[0].id
-    private_ip_address_allocation = "Static"
-    private_ip_address            = "10.1.3.5"
-  }
-
-  # TODO: Base this on the HA parameter
-  frontend_ip_configuration {
-    name                          = "ers-${local.sid}-lb-feip"
-    subnet_id                     = var.infrastructure.vnets.sap.subnet_app.is_existing ? data.azurerm_subnet.subnet-sap-app[0].id : azurerm_subnet.subnet-sap-app[0].id
-    private_ip_address_allocation = "Static"
-    private_ip_address            = "10.1.3.6"
+  dynamic "frontend_ip_configuration" {
+    for_each = range(var.application.scs_high_availability ? 2 : 1)
+    content {
+      name                          = "${frontend_ip_configuration.value == 0 ? "scs" : "ers"}-${var.application.sid}-lb-feip"
+      subnet_id                     = var.infrastructure.vnets.sap.subnet_app.is_existing ? data.azurerm_subnet.subnet-sap-app[0].id : azurerm_subnet.subnet-sap-app[0].id
+      private_ip_address_allocation = "Static"
+      private_ip_address            = "10.1.3.${5 + frontend_ip_configuration.value}"
+    }
   }
 }
 
 resource "azurerm_lb_backend_address_pool" "scs-lb-back-pool" {
-  count               = 1
+  count               = local.enable_deployment ? 1 : 0
   resource_group_name = var.resource-group[0].name
   loadbalancer_id     = azurerm_lb.scs-lb[0].id
-  name                = "scs-${local.sid}-lb-bep"
+  name                = "scs-${var.application.sid}-lb-bep"
 }
 
 resource "azurerm_lb_probe" "scs-lb-health-probe" {
-  count               = 2
+  count               = local.enable_deployment ? (var.application.scs_high_availability ? 2 : 1) : 0
   resource_group_name = var.resource-group[0].name
   loadbalancer_id     = azurerm_lb.scs-lb[0].id
-  name                = "${count.index == 0 ? "scs" : "ers"}-${local.sid}-lb-hp"
+  name                = "${count.index == 0 ? "scs" : "ers"}-${var.application.sid}-lb-hp"
   port                = local.hp-ports[count.index]
   protocol            = "Tcp"
   interval_in_seconds = 5
   number_of_probes    = 2
 }
 
-# Create the SCS/ERS Load Balancer Rules
+# Create the SCS Load Balancer Rules
 resource "azurerm_lb_rule" "scs-lb-rules" {
-  count                          = length(local.lb-ports.scs)
+  count                          = local.enable_deployment ? length(local.lb-ports.scs) : 0
   resource_group_name            = var.resource-group[0].name
   loadbalancer_id                = azurerm_lb.scs-lb[0].id
-  name                           = "SCS_${local.sid}_${local.lb-ports.scs[count.index]}"
+  name                           = "SCS_${var.application.sid}_${local.lb-ports.scs[count.index]}"
   protocol                       = "Tcp"
   frontend_port                  = local.lb-ports.scs[count.index]
   backend_port                   = local.lb-ports.scs[count.index]
-  frontend_ip_configuration_name = "scs-${local.sid}-lb-feip"
+  frontend_ip_configuration_name = "scs-${var.application.sid}-lb-feip"
   backend_address_pool_id        = azurerm_lb_backend_address_pool.scs-lb-back-pool[0].id
   probe_id                       = azurerm_lb_probe.scs-lb-health-probe[0].id
   enable_floating_ip             = true
 }
 
-# TODO: Base this on the HA parameter
+# Create the ERS Load balancer rules only in High Availability configurations
 resource "azurerm_lb_rule" "ers-lb-rules" {
-  count                          = length(local.lb-ports.ers)
+  count                          = local.enable_deployment ? (var.application.scs_high_availability ? length(local.lb-ports.ers) : 0) : 0
   resource_group_name            = var.resource-group[0].name
   loadbalancer_id                = azurerm_lb.scs-lb[0].id
-  name                           = "ERS_${local.sid}_${local.lb-ports.ers[count.index]}"
+  name                           = "ERS_${var.application.sid}_${local.lb-ports.ers[count.index]}"
   protocol                       = "Tcp"
   frontend_port                  = local.lb-ports.ers[count.index]
   backend_port                   = local.lb-ports.ers[count.index]
-  frontend_ip_configuration_name = "ers-${local.sid}-lb-feip"
+  frontend_ip_configuration_name = "ers-${var.application.sid}-lb-feip"
   backend_address_pool_id        = azurerm_lb_backend_address_pool.scs-lb-back-pool[0].id
   probe_id                       = azurerm_lb_probe.scs-lb-health-probe[1].id
   enable_floating_ip             = true
@@ -94,7 +82,7 @@ resource "azurerm_lb_rule" "ers-lb-rules" {
 
 # Associate SCS VM NICs with the Load Balancer Backend Address Pool
 resource "azurerm_network_interface_backend_address_pool_association" "scs-lb-nic-bep" {
-  count                   = length(azurerm_network_interface.nics-scs)
+  count                   = local.enable_deployment ? length(azurerm_network_interface.nics-scs) : 0
   network_interface_id    = azurerm_network_interface.nics-scs[count.index].id
   ip_configuration_name   = azurerm_network_interface.nics-scs[count.index].ip_configuration[0].name
   backend_address_pool_id = azurerm_lb_backend_address_pool.scs-lb-back-pool[0].id
@@ -102,8 +90,8 @@ resource "azurerm_network_interface_backend_address_pool_association" "scs-lb-ni
 
 # Create the SCS Availability Set
 resource "azurerm_availability_set" "scs-as" {
-  count                        = 1
-  name                         = "scs-${local.sid}-as"
+  count                        = local.enable_deployment ? 1 : 0
+  name                         = "scs-${var.application.sid}-as"
   location                     = var.resource-group[0].location
   resource_group_name          = var.resource-group[0].name
   platform_update_domain_count = 20
@@ -113,9 +101,9 @@ resource "azurerm_availability_set" "scs-as" {
 
 # Create the SCS VM(s)
 resource "azurerm_linux_virtual_machine" "vm-scs" {
-  count               = 2
-  name                = "scs${count.index}-${local.sid}-vm"
-  computer_name       = "${lower(local.sid)}scs${format("%02d", count.index)}"
+  count               = local.enable_deployment ? (var.application.scs_high_availability ? 2 : 1) : 0
+  name                = "scs${count.index}-${var.application.sid}-vm"
+  computer_name       = "${lower(var.application.sid)}scs${format("%02d", count.index)}"
   location            = var.resource-group[0].location
   resource_group_name = var.resource-group[0].name
   availability_set_id = azurerm_availability_set.scs-as[0].id
@@ -149,9 +137,3 @@ resource "azurerm_linux_virtual_machine" "vm-scs" {
     storage_account_uri = var.storage-bootdiag.primary_blob_endpoint
   }
 }
-
-# TODO: Disk(s) ?
-# Do we need additional data disk?
-
-
-# TODO: Disk Attachment ?

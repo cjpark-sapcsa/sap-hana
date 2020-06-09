@@ -91,6 +91,14 @@
     },
     "downloader": {}
   },
+  "application": {
+    "sid": "HN1",
+    "enable_deployment": false,
+    "scs_instance_number": "01",
+    "ers_instance_number": "02",
+    "scs_high_availability": false,
+    "application_server_count": 1
+  },
   "sshkey": {
     "path_to_public_key": "~/.ssh/id_rsa.pub",
     "path_to_private_key": "~/.ssh/id_rsa"
